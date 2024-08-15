@@ -1,0 +1,31 @@
+buildscript {
+    repositories {
+        maven {
+            url uri('file:///E:/Maven/RepLocal/PluginFlutterConfigAssetsManager')
+        }
+    }
+    dependencies {
+        classpath 'me.plugin.flutter:PluginFlutterConfigAssetsManager:1.0.1'
+    }
+}
+
+apply plugin: 'PluginFlutterConfigAssetsManager'
+
+task autoTaskWindows {
+
+    doLast {
+        exec {
+            commandLine 'cmd', '/c', 'flutter pub get'
+        }
+    }
+}
+
+
+task autoTaskMacOs {
+    doLast {
+        exec {
+            commandLine 'sh', '-c', 'flutter pub get'
+        }
+    }
+}
+
