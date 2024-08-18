@@ -17,13 +17,11 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
     }
 
     void allTasks(Project project) {
-        println("开始执行 PluginFlutterConfigAssetsManager 的任务...")
         // 整理 Flutter 项目：执行 flutter clean 和 flutter pub get
         flutterClean(project)
         flutterPubGet(project)
         // 创建配置文件
-        createOrCheckConfigFile(project)
-        println("配置文件生成完成，执行剩余任务...")
+        createConfigFile(project)
         // 最后再次执行 flutter pub get
         flutterPubGet(project)
     }
@@ -46,24 +44,43 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
         }
     }
 
-    void createOrCheckConfigFile(Project project) {
-        File upperDirectory = project.rootDir.parentFile
-        File configFile = new File(upperDirectory, "config.properties")
+    void createConfigFile(Project project) {
+        //先获取config.properties
+        File currentDirPath = project.rootDir.parentFile
+        File configFile = new File(currentDirPath, "config.properties")
+        if (!configFile.exists()) {
+            try {
+                configFile.createNewFile()
+                initializeConfigFile(configFile)
+            } catch (IOException e) {
+                println("创建配置文件失败: ${e.message}")
+            }
+        } else {
+            //读取config.properties里面的内容
+            Properties properties = new Properties()
+            configFile.withInputStream { stream ->
+                properties.load(stream)
+            }
 
-        if (configFile.exists()) {
-            println("配置文件已存在: ${configFile.absolutePath}")
-            configFile.delete()
-            println("配置文件已删除")
+            // 检查是否有属性真正有值（非空且非空字符串）
+            boolean hasValue = properties.any { key, value -> value?.trim() }
+
+            if (!hasValue) {
+                println("config.properties 中没有任何已赋值的属性，未生成 generate 文件夹。")
+                return
+            }
+            File appBuildConfigFile = new File(currentDirPath, 'lib/generate/app_build_config.dart')
+            if (!appBuildConfigFile.exists()) {
+                //创建generate文件夹
+                appBuildConfigFile.getParentFile().mkdirs()
+                //创建app_build_config.dart
+                appBuildConfigFile.createNewFile()
+            }
+            //读取config.properties中已经赋值的属性
+
+
         }
 
-        try {
-            println("配置文件准备创建...")
-            configFile.createNewFile()
-            initializeConfigFile(configFile)
-            println("配置文件创建并初始化完成: ${configFile.absolutePath}")
-        } catch (IOException e) {
-            println("创建配置文件失败: ${e.message}")
-        }
     }
 
     void initializeConfigFile(File configFile) {
@@ -74,30 +91,5 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
         configFile << "Name=\n"
         configFile << "VersionCode=\n"
         configFile << "VersionName=\n\n"
-    }
-
-    void applyConfigLogic(File configFile) {
-        Properties properties = new Properties()
-        configFile.withInputStream { stream ->
-            properties.load(stream)
-        }
-
-        String versionCode = properties.getProperty("VersionCode", "")
-        String versionName = properties.getProperty("VersionName", "")
-        String applicationId = properties.getProperty("ApplicationId", "")
-        String name = properties.getProperty("Name", "")
-
-        String androidVersionCode = properties.getProperty("AndroidVersionCode", versionCode)
-        String iosVersionCode = properties.getProperty("IosVersionCode", versionCode)
-        String webVersionCode = properties.getProperty("WebVersionCode", versionCode)
-        String windowsVersionCode = properties.getProperty("WindowsVersionCode", versionCode)
-        String macOsVersionCode = properties.getProperty("MacOsVersionCode", versionCode)
-
-        // 打印平台字段
-        println "Android VersionCode: ${androidVersionCode}"
-        println "iOS VersionCode: ${iosVersionCode}"
-        println "Web VersionCode: ${webVersionCode}"
-        println "Windows VersionCode: ${windowsVersionCode}"
-        println "MacOs VersionCode: ${macOsVersionCode}"
     }
 }
