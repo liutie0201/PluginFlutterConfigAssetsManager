@@ -11,21 +11,7 @@ buildscript {
 
 apply plugin: 'PluginFlutterConfigAssetsManager'
 
-task autoTaskWindows {
+task nullTask {
 
-    doLast {
-        exec {
-            commandLine 'cmd', '/c', 'flutter pub get'
-        }
-    }
+
 }
-
-
-task autoTaskMacOs {
-    doLast {
-        exec {
-            commandLine 'sh', '-c', 'flutter pub get'
-        }
-    }
-}
-
