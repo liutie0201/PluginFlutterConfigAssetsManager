@@ -80,29 +80,20 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
     void writeAppBuildConfig(File appBuildConfigFile, Properties properties) {
         // 检查是否有属性真正有值（非空且非空字符串）
         boolean hasValue = properties.any { key, value -> value?.trim() }
-
-        if (!hasValue) {
-            appBuildConfigFile.withWriter("UTF-8") { writer ->
-                writer << "// 自动生成的配置文件\n"
-                writer << "class AppBuildConfig {\n"
-                writer << "}\n"
-            }
-            return
-        }
         appBuildConfigFile.withWriter("UTF-8") { writer ->
             writer << "// 自动生成的配置文件\n"
             writer << "class AppBuildConfig {\n"
-
-            properties.each { key, value ->
-                if (value?.trim()) { // 仅写入有实际值的属性
-                    def keys = key.substring(0, 1).toLowerCase() + key.substring(1, key.length())
-                    writer << "  static const ${value.isInteger() ? "int" : "String"} ${key} = ${value.isInteger() ? value : "\"${value}\""};\n"
+            if (hasValue) {
+                properties.each { key, value ->
+                    if (value?.trim()) { // 仅写入有实际值的属性
+                        if (!key.equals("loadAssetsName")) {
+                            writer << "  static const ${value.isInteger() ? "int" : "String"} ${key} = ${value.isInteger() ? value : "\"${value}\""};\n"
+                        }
+                    }
                 }
             }
-
-            writer << "}\n"
+            writer << "\n}\n"
         }
-
     }
 
 
@@ -114,12 +105,13 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
         writer.println("## config.properties不仅仅只要有这些字段，还有以平台开头的值，比如applicationIdAndroid、applicationIdIOS、applicationIdWeb、applicationIdWindows、applicationIdMacOs、applicationNameIOS、applicationVersionCodeWeb、applicationVersionNameWindows、等等")
         writer.println("## 如果将applicationVersionCode(仅举例) 赋值：applicationVersionCode = 101 ，而applicationVersionCodeAndroid = 105，那么其他平台(IOS、Web、Windows、MacOs、Linux)的applicationVersionCode都是101，而Android的applicationVersionCode则是105\n")
 
-        // 全局属性部分
+        // 全局属性
         writer.println("## 全局属性")
         writer.println("applicationId=")
         writer.println("applicationName=")
         writer.println("applicationVersionCode=")
         writer.println("applicationVersionName=")
+        writer.println("#loadAssetsName=")
 
         // Android平台属性
         writer.println("\n## Android")
