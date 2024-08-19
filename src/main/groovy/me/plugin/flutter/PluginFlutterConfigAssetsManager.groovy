@@ -66,8 +66,7 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
             }
             // 读取 config.properties 里面的内容
             Properties properties = new Properties()
-            configFile.withReader("UTF-8") { reader ->
-                properties.load(reader)
+            configFile.withReader("UTF-8") { reader -> properties.load(reader)
             }
 
             // 写入 app_build_config.dart 文件
@@ -148,12 +147,10 @@ class PluginFlutterConfigAssetsManager implements Plugin<Project> {
     }
 
     String getFileType(String fileName) {
-        if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")||fileName.endsWith(".ico")) {
+        if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".ico") || fileName.endsWith(".webp") || fileName.endsWith(".heif")) {
             return "image"
         } else if (fileName.endsWith(".svg")) {
             return "svg"
-        } else if (fileName.endsWith(".ttf") || fileName.endsWith(".otf")) {
-            return "font"
         }
         return null
     }
