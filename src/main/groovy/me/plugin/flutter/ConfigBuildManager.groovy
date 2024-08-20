@@ -11,7 +11,6 @@ class ConfigBuildManager {
     }
 
     void writeAppBuildConfig(File appBuildConfigFile, Properties properties) {
-        print("---------开始写入 app_build_config 文件----------")
         appBuildConfigFile.withWriter("UTF-8") { writer ->
             writer << "// 自动生成的配置文件\n"
             writer << "class AppBuildConfig {\n"

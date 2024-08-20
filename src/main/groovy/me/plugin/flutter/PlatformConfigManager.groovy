@@ -1,7 +1,6 @@
 package me.plugin.flutter
 
 import org.gradle.api.Project
-import java.util.Properties
 
 class PlatformConfigManager {
     private final Project project
@@ -11,8 +10,7 @@ class PlatformConfigManager {
     }
 
     void applyConfigToPlatforms(Properties properties) {
-        print('开始设置平台属性值')
-        File currentDirPath = project.rootDir
+        File currentDirPath = project.rootDir.parentFile
         File androidDir = new File(currentDirPath, 'android')
         File iosDir = new File(currentDirPath, 'ios')
         File webDir = new File(currentDirPath, 'web')
@@ -52,8 +50,48 @@ class PlatformConfigManager {
         String applicationVersionCodeAndroid = properties.getProperty("applicationVersionCodeAndroid")?.trim() ?: applicationVersionCode
         String applicationVersionNameAndroid = properties.getProperty("applicationVersionNameAndroid")?.trim() ?: applicationVersionName
 
+//        if (!applicationIdAndroid || !applicationId) {
+//            File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
+//            if (buildGradleFile.exists()) {
+//                if (!applicationIdAndroid) {
+//
+//                } else {
+//
+//                }
+//            }
+//        }
+        if (applicationNameAndroid || applicationName) {
+            File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
+
+            if (manifestFile.exists()) {
+                println("----------------${applicationName}---------------")
+                def manifest = new XmlParser().parse(manifestFile)
+//               manifest.application[0].'*'.findAll{
+//                   println(it.key)
+//               }
+//                def applicationNode = manifest.application[0]
+                println(manifest.attributes().toString())
+//                manifest.application.attributes().put("android:label", applicationName)
+//
+//                // 使用 XmlNodePrinter 来序列化 Node 对象
+//                StringWriter writer = new StringWriter()
+//                new XmlNodePrinter(new PrintWriter(writer)).print(manifest)
+//                String result = writer.toString()
+//
+//                manifestFile.write(result, "utf-8")
+
+
+
+
+                if (!applicationNameAndroid) {
+
+                } else {
+
+                }
+
+            }
+        }
         // 这里可以编写应用到Android平台的逻辑
-        println("设置Android平台的配置：$applicationIdAndroid, $applicationNameAndroid, $applicationVersionCodeAndroid, $applicationVersionNameAndroid")
     }
 
     void applyConfigToIOS(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -63,7 +101,6 @@ class PlatformConfigManager {
         String applicationVersionNameIOS = properties.getProperty("applicationVersionNameIOS")?.trim() ?: applicationVersionName
 
         // 这里可以编写应用到iOS平台的逻辑
-        println("设置iOS平台的配置：$applicationIdIOS, $applicationNameIOS, $applicationVersionCodeIOS, $applicationVersionNameIOS")
     }
 
     void applyConfigToWeb(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -73,7 +110,6 @@ class PlatformConfigManager {
         String applicationVersionNameWeb = properties.getProperty("applicationVersionNameWeb")?.trim() ?: applicationVersionName
 
         // 这里可以编写应用到Web平台的逻辑
-        println("设置Web平台的配置：$applicationIdWeb, $applicationNameWeb, $applicationVersionCodeWeb, $applicationVersionNameWeb")
     }
 
     void applyConfigToWindows(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -83,7 +119,6 @@ class PlatformConfigManager {
         String applicationVersionNameWindows = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName
 
         // 这里可以编写应用到Windows平台的逻辑
-        println("设置Windows平台的配置：$applicationIdWindows, $applicationNameWindows, $applicationVersionCodeWindows, $applicationVersionNameWindows")
     }
 
     void applyConfigToMacOs(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -93,7 +128,6 @@ class PlatformConfigManager {
         String applicationVersionNameMacOs = properties.getProperty("applicationVersionNameMacOs")?.trim() ?: applicationVersionName
 
         // 这里可以编写应用到MacOS平台的逻辑
-        println("设置MacOS平台的配置：$applicationIdMacOs, $applicationNameMacOs, $applicationVersionCodeMacOs, $applicationVersionNameMacOs")
     }
 
     void applyConfigToLinux(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -103,6 +137,5 @@ class PlatformConfigManager {
         String applicationVersionNameLinux = properties.getProperty("applicationVersionNameLinux")?.trim() ?: applicationVersionName
 
         // 这里可以编写应用到Linux平台的逻辑
-        println("设置Linux平台的配置：$applicationIdLinux, $applicationNameLinux, $applicationVersionCodeLinux, $applicationVersionNameLinux")
     }
 }

@@ -11,7 +11,6 @@ class ConfigFileManager {
     }
 
     void createConfigFile() {
-        println("-------------文件任务开始------------")
         File currentDirPath = project.rootDir.parentFile
         File configFile = new File(currentDirPath, "config.properties")
         File generateFileDir = new File(currentDirPath, 'lib/generate')

@@ -11,7 +11,6 @@ class ConfigAssetsManager {
     }
 
     void writeAppImageConfig(File currentDirPath, File appImageConfigFile, Properties properties) {
-        print("---------开始写入 app_image_config 文件----------")
         String loadAssetsName = properties.getProperty("loadAssetsName")?.trim()
         File assetsDir = new File(currentDirPath, loadAssetsName)
         if (assetsDir.exists() && assetsDir.isDirectory()) {
@@ -23,7 +22,6 @@ class ConfigAssetsManager {
 
                 writer << "\n}\n"
             }
-            println("生成的 app_image_config.dart 文件位于: ${appImageConfigFile.absolutePath}")
         } else {
             println("指定的 assets 目录不存在或不是有效的目录: ${assetsDir.absolutePath}")
         }
