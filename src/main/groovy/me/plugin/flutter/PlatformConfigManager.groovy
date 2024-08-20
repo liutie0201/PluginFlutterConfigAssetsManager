@@ -2,6 +2,7 @@ package me.plugin.flutter
 
 import groovy.xml.Namespace
 import org.gradle.api.Project
+import org.yaml.snakeyaml.Yaml
 
 class PlatformConfigManager {
     private final Project project
@@ -51,45 +52,50 @@ class PlatformConfigManager {
         String applicationVersionCodeAndroid = properties.getProperty("applicationVersionCodeAndroid")?.trim() ?: applicationVersionCode
         String applicationVersionNameAndroid = properties.getProperty("applicationVersionNameAndroid")?.trim() ?: applicationVersionName
 
-        if (!applicationIdAndroid || !applicationId) {
-            File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
-            if (buildGradleFile.exists()) {
-
-
-                if (!applicationIdAndroid) {
-
-                } else {
-
-                }
-            }
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
         }
-        if (applicationNameAndroid || applicationName) {
-            File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
+        File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
             def androidNamespace = new Namespace("http://schemas.android.com/apk/res/android", "android")
-
-            if (manifestFile.exists()) {
-                def manifest = new XmlSlurper().parse(manifestFile)
-                def applicationNode = manifest.application[0]
-                if (applicationNode != null) {
-                    def labelAttribute = applicationNode.@(androidNamespace.label)
-                    if (labelAttribute != null) {
-                        if (!applicationNameAndroid) {
-                            applicationNode.@(androidNamespace.label) = applicationNameAndroid
-                        } else {
-                            applicationNode.@(androidNamespace.label) = applicationName
-                        }
+            def manifest = new XmlSlurper().parse(manifestFile)
+            def applicationNode = manifest.application[0]
+            if (applicationNode != null) {
+                def labelAttribute = applicationNode.@(androidNamespace.label)
+                if (labelAttribute != null) {
+                    if (applicationNameAndroid || applicationName) {
+                        applicationNode.@(androidNamespace.label) = applicationNameAndroid ? applicationNameAndroid : applicationName
                         manifestFile.withWriter('UTF-8') { writer ->
                             XmlUtil.serialize(manifest, writer)
                         }
                     } else {
-                        println "android:label attribute not found!"
+                        //获取pubspec.yaml里面的name，将其赋值到applicationNode.@(androidNamespace.label) 里面去
+                        if (pubspecYamlData?.name) {
+                            applicationNode.@(androidNamespace.label) = pubspecYamlData?.name
+                            manifestFile.withWriter('UTF-8') { writer ->
+                                XmlUtil.serialize(manifest, writer)
+                            }
+                        }
                     }
                 } else {
-                    println "Application node not found!"
+                    println "android:label attribute not found!"
                 }
+            } else {
+                println "Application node not found!"
             }
         }
-        // 这里可以编写应用到Android平台的逻辑
+
+//        // 更新 build.gradle 中的 applicationId、versionCode、versionName
+//        File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
+//        if (buildGradleFile.exists()) {
+//            def lines = buildGradleFile.readLines()
+//            println("---------------------")
+//        } else {
+//            println "build.gradle file not found!"
+//        }
+
     }
 
     void applyConfigToIOS(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
@@ -136,4 +142,5 @@ class PlatformConfigManager {
 
         // 这里可以编写应用到Linux平台的逻辑
     }
+
 }

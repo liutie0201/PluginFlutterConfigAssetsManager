@@ -31,7 +31,6 @@ class ConfigFileManager {
                 if (!generateFileDir.exists()) {
                     generateFileDir.mkdirs()
                 }
-
                 // 判断是否需要创建或删除文件
                 manageConfigFiles(properties)
             } else {
