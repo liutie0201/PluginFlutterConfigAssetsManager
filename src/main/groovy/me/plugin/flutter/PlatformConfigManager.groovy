@@ -1,5 +1,6 @@
 package me.plugin.flutter
 
+import groovy.xml.Namespace
 import org.gradle.api.Project
 
 class PlatformConfigManager {
@@ -50,45 +51,42 @@ class PlatformConfigManager {
         String applicationVersionCodeAndroid = properties.getProperty("applicationVersionCodeAndroid")?.trim() ?: applicationVersionCode
         String applicationVersionNameAndroid = properties.getProperty("applicationVersionNameAndroid")?.trim() ?: applicationVersionName
 
-//        if (!applicationIdAndroid || !applicationId) {
-//            File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
-//            if (buildGradleFile.exists()) {
-//                if (!applicationIdAndroid) {
-//
-//                } else {
-//
-//                }
-//            }
-//        }
-        if (applicationNameAndroid || applicationName) {
-            File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
-
-            if (manifestFile.exists()) {
-                println("----------------${applicationName}---------------")
-                def manifest = new XmlParser().parse(manifestFile)
-//               manifest.application[0].'*'.findAll{
-//                   println(it.key)
-//               }
-//                def applicationNode = manifest.application[0]
-                println(manifest.attributes().toString())
-//                manifest.application.attributes().put("android:label", applicationName)
-//
-//                // 使用 XmlNodePrinter 来序列化 Node 对象
-//                StringWriter writer = new StringWriter()
-//                new XmlNodePrinter(new PrintWriter(writer)).print(manifest)
-//                String result = writer.toString()
-//
-//                manifestFile.write(result, "utf-8")
+        if (!applicationIdAndroid || !applicationId) {
+            File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
+            if (buildGradleFile.exists()) {
 
 
-
-
-                if (!applicationNameAndroid) {
+                if (!applicationIdAndroid) {
 
                 } else {
 
                 }
+            }
+        }
+        if (applicationNameAndroid || applicationName) {
+            File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
+            def androidNamespace = new Namespace("http://schemas.android.com/apk/res/android", "android")
 
+            if (manifestFile.exists()) {
+                def manifest = new XmlSlurper().parse(manifestFile)
+                def applicationNode = manifest.application[0]
+                if (applicationNode != null) {
+                    def labelAttribute = applicationNode.@(androidNamespace.label)
+                    if (labelAttribute != null) {
+                        if (!applicationNameAndroid) {
+                            applicationNode.@(androidNamespace.label) = applicationNameAndroid
+                        } else {
+                            applicationNode.@(androidNamespace.label) = applicationName
+                        }
+                        manifestFile.withWriter('UTF-8') { writer ->
+                            XmlUtil.serialize(manifest, writer)
+                        }
+                    } else {
+                        println "android:label attribute not found!"
+                    }
+                } else {
+                    println "Application node not found!"
+                }
             }
         }
         // 这里可以编写应用到Android平台的逻辑
