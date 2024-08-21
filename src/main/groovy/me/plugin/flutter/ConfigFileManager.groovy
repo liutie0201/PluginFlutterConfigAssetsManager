@@ -70,7 +70,7 @@ class ConfigFileManager {
             }
             //app_image_config 文件写入
             def configAssetsManager = new ConfigAssetsManager(project)
-            configAssetsManager.writeAppImageConfig(currentDirPath,appImageConfigFile, properties)
+            configAssetsManager.writeAppImageConfig(currentDirPath, appImageConfigFile, properties)
         } else {
             if (appImageConfigFile.exists()) {
                 appImageConfigFile.delete()
