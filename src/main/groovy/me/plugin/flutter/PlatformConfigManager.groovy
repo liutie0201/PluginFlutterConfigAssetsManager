@@ -185,17 +185,17 @@ class PlatformConfigManager {
             xmlSlurper.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
             def plistContent = xmlSlurper.parse(plistFile)
             plistContent.dict[0].key.eachWithIndex { key, idx ->
-                if (key.text() == "CFBundleIdentifier" && applicationId) {
-                    plistContent.dict[0].string[idx] = applicationId
+                if (key.text() == "CFBundleIdentifier" && appId) {
+                    plistContent.dict[0].string[idx] = appId
                 }
-                if (key.text() == "CFBundleName" && applicationName) {
-                    plistContent.dict[0].string[idx] = applicationName
+                if (key.text() == "CFBundleName" && appName) {
+                    plistContent.dict[0].string[idx] = appName
                 }
-                if (key.text() == "CFBundleVersion" && applicationVersionCode) {
-                    plistContent.dict[0].string[idx] = applicationVersionCode
+                if (key.text() == "CFBundleVersion" && appVersionCode) {
+                    plistContent.dict[0].string[idx] = appVersionCode
                 }
-                if (key.text() == "CFBundleShortVersionString" && applicationVersionName) {
-                    plistContent.dict[0].string[idx] = applicationVersionName
+                if (key.text() == "CFBundleShortVersionString" && appVersionName) {
+                    plistContent.dict[0].string[idx] = appVersionName
                 }
             }
             plistFile.withWriter('UTF-8') { writer -> XmlUtil.serialize(plistContent, writer) }
