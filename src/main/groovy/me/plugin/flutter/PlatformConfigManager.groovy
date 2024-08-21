@@ -167,12 +167,46 @@ class PlatformConfigManager {
     }
 
     void applyConfigToMacOs(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String applicationIdMacOs = properties.getProperty("applicationIdMacOs")?.trim() ?: applicationId
-        String applicationNameMacOs = properties.getProperty("applicationNameMacOs")?.trim() ?: applicationName
-        String applicationVersionCodeMacOs = properties.getProperty("applicationVersionCodeMacOs")?.trim() ?: applicationVersionCode
-        String applicationVersionNameMacOs = properties.getProperty("applicationVersionNameMacOs")?.trim() ?: applicationVersionName
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+            println(pubspecYamlData)
+        }
+        String appId = properties.getProperty("applicationIdMacOs")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
+        String appName = properties.getProperty("applicationNameMacOs")?.trim() ?: applicationName ?: pubspecYamlData?.name
+        String appVersionCode = properties.getProperty("applicationVersionCodeMacOs")?.trim() ?: applicationVersionCode ?: "\$(FLUTTER_BUILD_NUMBER)"
+        String appVersionName = properties.getProperty("applicationVersionNameMacOs")?.trim() ?: applicationVersionName ?: "\$(FLUTTER_BUILD_NAME)"
 
-        // 这里可以编写应用到MacOS平台的逻辑
+        File plistFile = new File(currentDirPath, "macos/Runner/Info.plist")
+        if (plistFile.exists()) {
+            def xmlSlurper = new XmlSlurper()
+            xmlSlurper.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+            xmlSlurper.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+            def plistContent = xmlSlurper.parse(plistFile)
+            plistContent.dict[0].key.eachWithIndex { key, idx ->
+                if (key.text() == "CFBundleIdentifier" && applicationId) {
+                    plistContent.dict[0].string[idx] = applicationId
+                }
+                if (key.text() == "CFBundleName" && applicationName) {
+                    plistContent.dict[0].string[idx] = applicationName
+                }
+                if (key.text() == "CFBundleVersion" && applicationVersionCode) {
+                    plistContent.dict[0].string[idx] = applicationVersionCode
+                }
+                if (key.text() == "CFBundleShortVersionString" && applicationVersionName) {
+                    plistContent.dict[0].string[idx] = applicationVersionName
+                }
+            }
+            plistFile.withWriter('UTF-8') { writer -> XmlUtil.serialize(plistContent, writer) }
+            // 插入 DOCTYPE 声明
+            def xmlContent = plistFile.text
+            String insertText = '\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
+            def modifiedXmlContent = xmlContent.replaceFirst(/(?<=<\?xml version="1.0" encoding="UTF-8"\?>)/, insertText)
+            plistFile.text = modifiedXmlContent
+        } else {
+            println "Info.plist file not found!"
+        }
     }
 
     void applyConfigToLinux(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
