@@ -81,7 +81,9 @@ class PlatformConfigManager {
             buildGradleFile.withWriter('UTF-8') { writer ->
                 lines.each { line ->
                     if (line.contains("applicationId")) {
-                        writer.writeLine("        applicationId '${appId}'")
+                        if (appId) {
+                            writer.writeLine("        applicationId '${appId}'")
+                        }
                     } else if (line.contains("versionCode")) {
                         writer.writeLine("        versionCode = ${appVersionCode}")
                     } else if (line.contains("versionName")) {
@@ -101,11 +103,16 @@ class PlatformConfigManager {
     }
 
     void applyConfigToIOS(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-
-        String appIdIOS = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId
-        String appNameIOS = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName
-        String appVersionCodeIOS = properties.getProperty("applicationVersionCodeIOS")?.trim() ?: applicationVersionCode
-        String appVersionNameIOS = properties.getProperty("applicationVersionNameIOS")?.trim() ?: applicationVersionName
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+            println(pubspecYamlData)
+        }
+        String appId = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
+        String appName = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName ?: pubspecYamlData?.name
+        String appVersionCode = properties.getProperty("applicationVersionCodeIOS")?.trim() ?: applicationVersionCode ?: "\$(FLUTTER_BUILD_NUMBER)"
+        String appVersionName = properties.getProperty("applicationVersionNameIOS")?.trim() ?: applicationVersionName ?: "\$(FLUTTER_BUILD_NAME)"
 
         File plistFile = new File(currentDirPath, "ios/Runner/Info.plist")
         if (plistFile.exists()) {
@@ -114,17 +121,17 @@ class PlatformConfigManager {
             xmlSlurper.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
             def plistContent = xmlSlurper.parse(plistFile)
             plistContent.dict[0].key.eachWithIndex { key, idx ->
-                if (key.text() == "" && appIdIOS) {
-                    plistContent.dict[CFBundleIdentifier0].string[idx] = appIdIOS
+                if (key.text() == "CFBundleIdentifier" && appId) {
+                    plistContent.dict[0].string[idx] = appId
                 }
-                if (key.text() == "CFBundleName" && appNameIOS) {
-                    plistContent.dict[0].string[idx] = appNameIOS
+                if (key.text() == "CFBundleName" && appName) {
+                    plistContent.dict[0].string[idx] = appName
                 }
-                if (key.text() == "CFBundleShortVersionString" && appVersionNameIOS) {
-                    plistContent.dict[0].string[idx] = appVersionNameIOS
+                if (key.text() == "CFBundleVersion" && appVersionCode) {
+                    plistContent.dict[0].string[idx] = appVersionCode
                 }
-                if (key.text() == "CFBundleVersion" && appVersionCodeIOS) {
-                    plistContent.dict[0].string[idx] = appVersionCodeIOS
+                if (key.text() == "CFBundleShortVersionString" && appVersionName) {
+                    plistContent.dict[0].string[idx] = appVersionName
                 }
             }
             plistFile.withWriter('UTF-8') { writer -> XmlUtil.serialize(plistContent, writer)

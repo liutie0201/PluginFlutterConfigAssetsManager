@@ -25,7 +25,5 @@ class ConfigBuildManager {
 
             writer << "}\n"
         }
-        def platformConfigManager = new PlatformConfigManager(project)
-        platformConfigManager.applyConfigToPlatforms(properties)
     }
 }

@@ -38,6 +38,8 @@ class ConfigFileManager {
                     generateFileDir.deleteDir()
                 }
             }
+            def platformConfigManager = new PlatformConfigManager(project)
+            platformConfigManager.applyConfigToPlatforms(properties)
         }
     }
 
