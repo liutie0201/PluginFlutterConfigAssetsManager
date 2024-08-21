@@ -58,63 +58,87 @@ class PlatformConfigManager {
         String appVersionCode = properties.getProperty("applicationVersionCodeAndroid")?.trim() ?: applicationVersionCode ?: "flutter.versionCode"
         String appVersionName = properties.getProperty("applicationVersionNameAndroid")?.trim() ?: applicationVersionName ?: "flutter.versionName"
 
-        try {
-            File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
-            if (manifestFile.exists()) {
-                def androidNamespace = new Namespace("http://schemas.android.com/apk/res/android", "android")
-                def manifest = new XmlSlurper().parse(manifestFile)
-                def applicationNode = manifest.application[0]
-                if (applicationNode != null) {
-                    applicationNode.@(androidNamespace.label) = appName
-                    manifestFile.withWriter('UTF-8') { writer ->
-                        XmlUtil.serialize(manifest, writer)
-                    }
-                } else {
-                    println "Application node not found!"
+        File manifestFile = new File(currentDirPath, "android/app/src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            def androidNamespace = new Namespace("http://schemas.android.com/apk/res/android", "android")
+            def manifest = new XmlSlurper().parse(manifestFile)
+            def applicationNode = manifest.application[0]
+            if (applicationNode != null) {
+                applicationNode.@(androidNamespace.label) = appName
+                manifestFile.withWriter('UTF-8') { writer -> XmlUtil.serialize(manifest, writer)
                 }
             } else {
-                println "AndroidManifest.xml file not found!"
+                println "Application node not found!"
             }
-        } catch (Exception e) {
-            println "Error updating AndroidManifest.xml: ${e.message}"
+        } else {
+            println "AndroidManifest.xml file not found!"
         }
 
-        try {
-            // 更新 build.gradle 中的 applicationId、versionCode、versionName
-            File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
-            if (buildGradleFile.exists()) {
-                def lines = buildGradleFile.readLines()
-                buildGradleFile.withWriter('UTF-8') { writer ->
-                    lines.each { line ->
-                        if (line.contains("applicationId")) {
-                            writer.writeLine("        applicationId '${appId}'")
-                        } else if (line.contains("versionCode")) {
-                            writer.writeLine("        versionCode = ${appVersionCode}")
-                        } else if (line.contains("versionName")) {
-                            if (appVersionName != "flutter.versionName") {
-                                appVersionName = "'$appVersionName'"
-                            }
-                            writer.writeLine("        versionName = ${appVersionName}")
-                        } else {
-                            writer.writeLine(line)
+        // 更新 build.gradle 中的 applicationId、versionCode、versionName
+        File buildGradleFile = new File(currentDirPath, 'android/app/build.gradle')
+        if (buildGradleFile.exists()) {
+            def lines = buildGradleFile.readLines()
+            buildGradleFile.withWriter('UTF-8') { writer ->
+                lines.each { line ->
+                    if (line.contains("applicationId")) {
+                        writer.writeLine("        applicationId '${appId}'")
+                    } else if (line.contains("versionCode")) {
+                        writer.writeLine("        versionCode = ${appVersionCode}")
+                    } else if (line.contains("versionName")) {
+                        if (appVersionName != "flutter.versionName") {
+                            appVersionName = "'$appVersionName'"
                         }
+                        writer.writeLine("        versionName = ${appVersionName}")
+                    } else {
+                        writer.writeLine(line)
                     }
                 }
-            } else {
-                println("build.gradle file not found!")
             }
-        } catch (Exception e) {
-            println "Error updating build.gradle: ${e.message}"
+        } else {
+            println("build.gradle file not found!")
         }
+
     }
 
     void applyConfigToIOS(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String applicationIdIOS = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId
-        String applicationNameIOS = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName
-        String applicationVersionCodeIOS = properties.getProperty("applicationVersionCodeIOS")?.trim() ?: applicationVersionCode
-        String applicationVersionNameIOS = properties.getProperty("applicationVersionNameIOS")?.trim() ?: applicationVersionName
 
-        // 这里可以编写应用到iOS平台的逻辑
+        String appIdIOS = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId
+        String appNameIOS = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName
+        String appVersionCodeIOS = properties.getProperty("applicationVersionCodeIOS")?.trim() ?: applicationVersionCode
+        String appVersionNameIOS = properties.getProperty("applicationVersionNameIOS")?.trim() ?: applicationVersionName
+
+        File plistFile = new File(currentDirPath, "ios/Runner/Info.plist")
+        if (plistFile.exists()) {
+            def xmlSlurper = new XmlSlurper()
+            xmlSlurper.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+            xmlSlurper.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            def plistContent = xmlSlurper.parse(plistFile)
+            plistContent.dict[0].key.eachWithIndex { key, idx ->
+                if (key.text() == "" && appIdIOS) {
+                    plistContent.dict[CFBundleIdentifier0].string[idx] = appIdIOS
+                }
+                if (key.text() == "CFBundleName" && appNameIOS) {
+                    plistContent.dict[0].string[idx] = appNameIOS
+                }
+                if (key.text() == "CFBundleShortVersionString" && appVersionNameIOS) {
+                    plistContent.dict[0].string[idx] = appVersionNameIOS
+                }
+                if (key.text() == "CFBundleVersion" && appVersionCodeIOS) {
+                    plistContent.dict[0].string[idx] = appVersionCodeIOS
+                }
+            }
+            plistFile.withWriter('UTF-8') { writer -> XmlUtil.serialize(plistContent, writer)
+            }
+
+            def xmlContent = plistFile.text
+            String insertText = '\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
+            // 在第一行<?xml version="1.0" encoding="UTF-8"?>后插入DOCTYPE声明
+            def modifiedXmlContent = xmlContent.replaceFirst(/(?<=<\?xml version="1.0" encoding="UTF-8"\?>)/, insertText)
+            plistFile.text = modifiedXmlContent
+        } else {
+            println "Info.plist file not found!"
+        }
+
     }
 
     void applyConfigToWeb(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
