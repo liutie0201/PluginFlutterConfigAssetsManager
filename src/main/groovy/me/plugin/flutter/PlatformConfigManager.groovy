@@ -46,12 +46,16 @@ class PlatformConfigManager {
         }
     }
 
-    void applyConfigToAndroid(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
+    private File loadPubspecYaml(File currentDirPath) {
         File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
         if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+            return new Yaml().load(pubspecYamlFile.text)
         }
+        return null
+    }
+
+    void applyConfigToAndroid(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
 
         String appId = properties.getProperty("applicationIdAndroid")?.trim() ?: applicationId
         String appName = properties.getProperty("applicationNameAndroid")?.trim() ?: applicationName ?: pubspecYamlData?.name
@@ -103,11 +107,8 @@ class PlatformConfigManager {
     }
 
     void applyConfigToIOS(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
-        if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-        }
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
+
         String appId = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
         String appName = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName ?: pubspecYamlData?.name
         String appVersionCode = properties.getProperty("applicationVersionCodeIOS")?.trim() ?: applicationVersionCode ?: "\$(FLUTTER_BUILD_NUMBER)"
@@ -148,11 +149,7 @@ class PlatformConfigManager {
     }
 
     void applyConfigToWeb(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
-        if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-        }
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
 
         String appId = properties.getProperty("applicationIdWeb")?.trim() ?: applicationId
         String appName = properties.getProperty("applicationNameWeb")?.trim() ?: applicationName ?: pubspecYamlData?.name
@@ -178,11 +175,7 @@ class PlatformConfigManager {
     }
 
     void applyConfigToWindows(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
-        if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-        }
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
         String pubspecYamlVersion = pubspecYamlData?.version ?: "1.0.0"
         pubspecYamlVersion = pubspecYamlVersion.split("\\+").first()
 
@@ -214,11 +207,8 @@ class PlatformConfigManager {
 
 
     void applyConfigToMacOs(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
-        if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-        }
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
+
         String appId = properties.getProperty("applicationIdMacOs")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
         String appName = properties.getProperty("applicationNameMacOs")?.trim() ?: applicationName ?: pubspecYamlData?.name
         String appVersionCode = properties.getProperty("applicationVersionCodeMacOs")?.trim() ?: applicationVersionCode ?: "\$(FLUTTER_BUILD_NUMBER)"
@@ -256,11 +246,8 @@ class PlatformConfigManager {
     }
 
     void applyConfigToLinux(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
-        def pubspecYamlData
-        if (pubspecYamlFile.exists()) {
-            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-        }
+        def pubspecYamlData = loadPubspecYaml(currentDirPath)
+
         String pubspecYamlVersion = pubspecYamlData?.version ?: "1.0.0"
         pubspecYamlVersion = pubspecYamlVersion.split("\\+").first()
 
@@ -279,7 +266,7 @@ class PlatformConfigManager {
                     } else if (line.contains("set(APPLICATION_ID")) {
                         if (appId) {
                             writer.writeLine("set(APPLICATION_ID \"${appId}\")")
-                        }else {
+                        } else {
                             writer.writeLine(line)
                         }
                     } else if (line.contains("project(")) {
