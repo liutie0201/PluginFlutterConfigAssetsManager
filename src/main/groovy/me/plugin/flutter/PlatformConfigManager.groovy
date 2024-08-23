@@ -149,22 +149,62 @@ class PlatformConfigManager {
     }
 
     void applyConfigToWeb(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String applicationIdWeb = properties.getProperty("applicationIdWeb")?.trim() ?: applicationId
-        String applicationNameWeb = properties.getProperty("applicationNameWeb")?.trim() ?: applicationName
-        String applicationVersionCodeWeb = properties.getProperty("applicationVersionCodeWeb")?.trim() ?: applicationVersionCode
-        String applicationVersionNameWeb = properties.getProperty("applicationVersionNameWeb")?.trim() ?: applicationVersionName
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+        }
 
-        // 这里可以编写应用到Web平台的逻辑
+        String appId = properties.getProperty("applicationIdWeb")?.trim() ?: applicationId
+        String appName = properties.getProperty("applicationNameWeb")?.trim() ?: applicationName ?: pubspecYamlData?.name
+        String appVersionCode = properties.getProperty("applicationVersionCodeWeb")?.trim() ?: applicationVersionCode
+        String appVersionName = properties.getProperty("applicationVersionNameWeb")?.trim() ?: applicationVersionName
+
+        // 修改 index.html 文件的标题
+        File indexHtmlFile = new File(currentDirPath, "web/index.html")
+        if (indexHtmlFile.exists()) {
+            def lines = indexHtmlFile.readLines()
+            indexHtmlFile.withWriter('UTF-8') { writer ->
+                lines.each { line ->
+                    if (line.contains("<title>")) {
+                        writer.writeLine("<title>${appName}</title>")
+                    } else {
+                        writer.writeLine(line)
+                    }
+                }
+            }
+        } else {
+            println("index.html file not found!")
+        }
     }
 
     void applyConfigToWindows(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String applicationIdWindows = properties.getProperty("applicationIdWindows")?.trim() ?: applicationId
-        String applicationNameWindows = properties.getProperty("applicationNameWindows")?.trim() ?: applicationName
-        String applicationVersionCodeWindows = properties.getProperty("applicationVersionCodeWindows")?.trim() ?: applicationVersionCode
-        String applicationVersionNameWindows = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName
+        String appId = properties.getProperty("applicationIdWindows")?.trim() ?: applicationId
+        String appName = properties.getProperty("applicationNameWindows")?.trim() ?: applicationName
+        String appVersionCode = properties.getProperty("applicationVersionCodeWindows")?.trim() ?: applicationVersionCode
+        String appVersionName = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName
 
-        // 这里可以编写应用到Windows平台的逻辑
+        File cmakeListsFile = new File(currentDirPath, "windows/CMakeLists.txt")
+        if (cmakeListsFile.exists()) {
+            def lines = cmakeListsFile.readLines()
+            cmakeListsFile.withWriter('UTF-8') { writer ->
+                lines.each { line ->
+                    if (line.contains("set(BINARY_NAME")) {
+                        writer.writeLine("set(BINARY_NAME \"${appName}\")")
+                    } else if (line.contains("project(")) {
+                        writer.writeLine("project(${appName} VERSION ${appVersionName} LANGUAGES CXX)")
+                    } else if (line.contains("set(PROJECT_VERSION")) {
+                        writer.writeLine("set(PROJECT_VERSION \"${appVersionName}\")")
+                    } else {
+                        writer.writeLine(line)
+                    }
+                }
+            }
+        } else {
+            println("CMakeLists.txt file not found!")
+        }
     }
+
 
     void applyConfigToMacOs(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
         File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
@@ -210,12 +250,30 @@ class PlatformConfigManager {
     }
 
     void applyConfigToLinux(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String applicationIdLinux = properties.getProperty("applicationIdLinux")?.trim() ?: applicationId
-        String applicationNameLinux = properties.getProperty("applicationNameLinux")?.trim() ?: applicationName
-        String applicationVersionCodeLinux = properties.getProperty("applicationVersionCodeLinux")?.trim() ?: applicationVersionCode
-        String applicationVersionNameLinux = properties.getProperty("applicationVersionNameLinux")?.trim() ?: applicationVersionName
+        String appId = properties.getProperty("applicationIdLinux")?.trim() ?: applicationId
+        String appName = properties.getProperty("applicationNameLinux")?.trim() ?: applicationName
+        String appVersionCode = properties.getProperty("applicationVersionCodeLinux")?.trim() ?: applicationVersionCode
+        String appVersionName = properties.getProperty("applicationVersionNameLinux")?.trim() ?: applicationVersionName
 
-        // 这里可以编写应用到Linux平台的逻辑
+        // 修改 CMakeLists.txt 文件
+        File cmakeListsFile = new File(currentDirPath, "linux/CMakeLists.txt")
+        if (cmakeListsFile.exists()) {
+            def lines = cmakeListsFile.readLines()
+            cmakeListsFile.withWriter('UTF-8') { writer ->
+                lines.each { line ->
+                    if (line.contains("set(PROJECT_NAME")) {
+                        writer.writeLine("set(PROJECT_NAME \"${appName}\")")
+                    } else if (line.contains("set(PROJECT_VERSION")) {
+                        writer.writeLine("set(PROJECT_VERSION \"${appVersionName}\")")
+                    } else {
+                        writer.writeLine(line)
+                    }
+                }
+            }
+        } else {
+            println("CMakeLists.txt file not found!")
+        }
     }
+
 
 }

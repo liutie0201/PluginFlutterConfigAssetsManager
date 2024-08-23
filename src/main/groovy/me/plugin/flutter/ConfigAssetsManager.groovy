@@ -20,7 +20,7 @@ class ConfigAssetsManager {
 
                 processAssetDirectory(assetsDir, writer, currentDirPath)
 
-                writer << "\n}\n"
+                writer << "}\n"
             }
         } else {
             println("指定的 assets 目录不存在或不是有效的目录: ${assetsDir.absolutePath}")

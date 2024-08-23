@@ -22,80 +22,51 @@ class ConfigFileManager {
             } catch (IOException e) {
                 println("创建配置文件失败: ${e.message}")
             }
-        } else {
-            Properties properties = new Properties()
-            configFile.withReader("UTF-8") { reader -> properties.load(reader) }
-
-            boolean hasValue = properties.any { key, value -> value?.trim() }
-            if (hasValue) {
-                if (!generateFileDir.exists()) {
-                    generateFileDir.mkdirs()
-                }
-                // 判断是否需要创建或删除文件
-                manageConfigFiles(properties)
-            } else {
-                if (generateFileDir.exists()) {
-                    generateFileDir.deleteDir()
-                }
-            }
-            def platformConfigManager = new PlatformConfigManager(project)
-            platformConfigManager.applyConfigToPlatforms(properties)
         }
-    }
-
-    void manageConfigFiles(Properties properties) {
-        int propertiesSize = properties.findAll { key, value -> value?.trim() }.size()
-        String loadAssetsName = properties.getProperty("loadAssetsName")?.trim()
-
-        boolean shouldCreateBuildFile = propertiesSize != 1 || !loadAssetsName
-        boolean shouldCreateImageFile = loadAssetsName
-
-        File currentDirPath = project.rootDir.parentFile
+        if (!generateFileDir.exists()) {
+            generateFileDir.mkdirs()
+        }
         File appBuildConfigFile = new File(currentDirPath, 'lib/generate/app_build_config.dart')
         File appImageConfigFile = new File(currentDirPath, 'lib/generate/app_image_config.dart')
 
-        if (shouldCreateBuildFile) {
-            if (!appBuildConfigFile.exists()) {
-                appBuildConfigFile.createNewFile()
-            }
-            //app_build_config 文件写入
-            def configBuildManager = new ConfigBuildManager(project)
-            configBuildManager.writeAppBuildConfig(appBuildConfigFile, properties)
-        } else {
-            if (appBuildConfigFile.exists()) {
-                appBuildConfigFile.delete()
-            }
+        if (!appBuildConfigFile.exists()) {
+            appBuildConfigFile.createNewFile()
         }
-        if (shouldCreateImageFile) {
-            if (!appImageConfigFile.exists()) {
-                appImageConfigFile.createNewFile()
-            }
-            //app_image_config 文件写入
-            def configAssetsManager = new ConfigAssetsManager(project)
-            configAssetsManager.writeAppImageConfig(currentDirPath, appImageConfigFile, properties)
-        } else {
-            if (appImageConfigFile.exists()) {
-                appImageConfigFile.delete()
-            }
+        if (!appImageConfigFile.exists()) {
+            appImageConfigFile.createNewFile()
         }
+        Properties properties = new Properties()
+        configFile.withReader("UTF-8") { reader -> properties.load(reader) }
+
+        def configBuildManager = new ConfigBuildManager(project)
+        configBuildManager.writeAppBuildConfig(appBuildConfigFile, properties)
+
+        def configAssetsManager = new ConfigAssetsManager(project)
+        configAssetsManager.writeAppImageConfig(currentDirPath, appImageConfigFile, properties)
+
+        def platformConfigManager = new PlatformConfigManager(project)
+        platformConfigManager.applyConfigToPlatforms(properties)
 
     }
+
 
     void initializeConfigFile(File configFile) {
         configFile.withWriter("UTF-8") { writer ->
             // 添加全局注释
-            writer.println("## 以下字段是自动生成的，删除或者为空都不影响应用的真实值，但是如果一旦赋值，将会以下面字段的值为准")
-            writer.println("## config.properties不仅仅只要有这些字段，还有以平台结尾的值，比如applicationIdAndroid、applicationIdIOS、applicationIdWeb、applicationIdWindows、applicationIdMacOs、applicationNameIOS、applicationVersionCodeWeb、applicationVersionNameWindows、等等")
-            writer.println("## 如果将applicationVersionCode(仅举例) 赋值：applicationVersionCode = 101 ，而applicationVersionCodeAndroid = 105，那么其他平台(IOS、Web、Windows、MacOs、)的applicationVersionCode都是101，而Android的applicationVersionCode则是105\n")
-            writer.println("## 暂不支持Linux平台\n")
+            writer.println("# If the comments are garbled, set the compiler to utf-8")
+            writer.println("# 以下字段是自动生成的，删除或者为空都不影响应用的真实值，但是如果一旦赋值，将会以下面字段的值为准")
+            writer.println("# config.properties不仅仅只要有这些字段，还有以平台结尾的值，比如applicationIdAndroid、applicationIdIOS、applicationIdWeb、applicationIdWindows、applicationIdMacOs、applicationNameIOS、applicationVersionCodeWeb、applicationVersionNameWindows、等等")
+            writer.println("# 如果将applicationVersionCode(仅举例) 赋值：applicationVersionCode = 101 ，而applicationVersionCodeAndroid = 105，那么其他平台(IOS、Web、Windows、MacOs、)的applicationVersionCode都是101，而Android的applicationVersionCode则是105\n")
+            writer.println("# 暂不支持Linux平台\n")
 
             // 全局属性
-            writer.println("## 全局属性")
+            writer.println("# 全局属性")
             writer.println("applicationId=")
             writer.println("applicationName=")
             writer.println("applicationVersionCode=")
             writer.println("applicationVersionName=")
-            writer.println("#loadAssetsName=")
+            writer.println("#loadAssetsName默认assets")
+            writer.println("loadAssetsName=assets")
 
 //            // Android平台属性
 //            writer.println("\n## Android")
