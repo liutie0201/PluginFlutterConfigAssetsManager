@@ -57,7 +57,6 @@ class ConfigFileManager {
             writer.println("# 以下字段是自动生成的，删除或者为空都不影响应用的真实值，但是如果一旦赋值，将会以下面字段的值为准")
             writer.println("# config.properties不仅仅只要有这些字段，还有以平台结尾的值，比如applicationIdAndroid、applicationIdIOS、applicationIdWeb、applicationIdWindows、applicationIdMacOs、applicationNameIOS、applicationVersionCodeWeb、applicationVersionNameWindows、等等")
             writer.println("# 如果将applicationVersionCode(仅举例) 赋值：applicationVersionCode = 101 ，而applicationVersionCodeAndroid = 105，那么其他平台(IOS、Web、Windows、MacOs、)的applicationVersionCode都是101，而Android的applicationVersionCode则是105\n")
-            writer.println("# 暂不支持Linux平台\n")
 
             // 全局属性
             writer.println("# 全局属性")

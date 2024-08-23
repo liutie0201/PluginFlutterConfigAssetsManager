@@ -107,7 +107,6 @@ class PlatformConfigManager {
         def pubspecYamlData
         if (pubspecYamlFile.exists()) {
             pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-            println(pubspecYamlData)
         }
         String appId = properties.getProperty("applicationIdIOS")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
         String appName = properties.getProperty("applicationNameIOS")?.trim() ?: applicationName ?: pubspecYamlData?.name
@@ -179,10 +178,18 @@ class PlatformConfigManager {
     }
 
     void applyConfigToWindows(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+        }
+        String pubspecYamlVersion = pubspecYamlData?.version ?: "1.0.0"
+        pubspecYamlVersion = pubspecYamlVersion.split("\\+").first()
+
         String appId = properties.getProperty("applicationIdWindows")?.trim() ?: applicationId
-        String appName = properties.getProperty("applicationNameWindows")?.trim() ?: applicationName
+        String appName = properties.getProperty("applicationNameWindows")?.trim() ?: applicationName ?: pubspecYamlData?.name
         String appVersionCode = properties.getProperty("applicationVersionCodeWindows")?.trim() ?: applicationVersionCode
-        String appVersionName = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName
+        String appVersionName = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName ?: pubspecYamlVersion
 
         File cmakeListsFile = new File(currentDirPath, "windows/CMakeLists.txt")
         if (cmakeListsFile.exists()) {
@@ -211,7 +218,6 @@ class PlatformConfigManager {
         def pubspecYamlData
         if (pubspecYamlFile.exists()) {
             pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
-            println(pubspecYamlData)
         }
         String appId = properties.getProperty("applicationIdMacOs")?.trim() ?: applicationId ?: "\$(PRODUCT_BUNDLE_IDENTIFIER)"
         String appName = properties.getProperty("applicationNameMacOs")?.trim() ?: applicationName ?: pubspecYamlData?.name
@@ -250,21 +256,35 @@ class PlatformConfigManager {
     }
 
     void applyConfigToLinux(File currentDirPath, Properties properties, String applicationId, String applicationName, String applicationVersionCode, String applicationVersionName) {
-        String appId = properties.getProperty("applicationIdLinux")?.trim() ?: applicationId
-        String appName = properties.getProperty("applicationNameLinux")?.trim() ?: applicationName
-        String appVersionCode = properties.getProperty("applicationVersionCodeLinux")?.trim() ?: applicationVersionCode
-        String appVersionName = properties.getProperty("applicationVersionNameLinux")?.trim() ?: applicationVersionName
+        File pubspecYamlFile = new File(currentDirPath, "pubspec.yaml")
+        def pubspecYamlData
+        if (pubspecYamlFile.exists()) {
+            pubspecYamlData = new Yaml().load(pubspecYamlFile.text)
+        }
+        String pubspecYamlVersion = pubspecYamlData?.version ?: "1.0.0"
+        pubspecYamlVersion = pubspecYamlVersion.split("\\+").first()
 
-        // 修改 CMakeLists.txt 文件
+        String appId = properties.getProperty("applicationIdWindows")?.trim() ?: applicationId
+        String appName = properties.getProperty("applicationNameWindows")?.trim() ?: applicationName ?: pubspecYamlData?.name
+        String appVersionCode = properties.getProperty("applicationVersionCodeWindows")?.trim() ?: applicationVersionCode
+        String appVersionName = properties.getProperty("applicationVersionNameWindows")?.trim() ?: applicationVersionName ?: pubspecYamlVersion
+
         File cmakeListsFile = new File(currentDirPath, "linux/CMakeLists.txt")
         if (cmakeListsFile.exists()) {
             def lines = cmakeListsFile.readLines()
             cmakeListsFile.withWriter('UTF-8') { writer ->
                 lines.each { line ->
-                    if (line.contains("set(PROJECT_NAME")) {
-                        writer.writeLine("set(PROJECT_NAME \"${appName}\")")
-                    } else if (line.contains("set(PROJECT_VERSION")) {
-                        writer.writeLine("set(PROJECT_VERSION \"${appVersionName}\")")
+                    if (line.contains("set(BINARY_NAME")) {
+                        writer.writeLine("set(BINARY_NAME \"${appName}\")")
+                    } else if (line.contains("set(APPLICATION_ID")) {
+                        if (appId) {
+                            writer.writeLine("set(APPLICATION_ID \"${appId}\")")
+                        }else {
+                            writer.writeLine(line)
+                        }
+                    } else if (line.contains("project(")) {
+                        // 替换project行，添加应用程序名称和版本信息
+                        writer.writeLine("project(${appName} VERSION ${appVersionName} LANGUAGES CXX)")
                     } else {
                         writer.writeLine(line)
                     }
