@@ -31,10 +31,10 @@ class ConfigAssetsManager {
         }
     }
 
-    void processAssetDirectory(File dir, Writer writer, File rootDir) {
+    void processAssetDirectory(File assetsDir, Writer writer, File rootDir) {
         // 使用 Map 来存储不带分辨率前缀的路径，避免重复加载
         def assetMap = new LinkedHashMap<String, String>()
-        dir.eachFileRecurse { file ->
+        assetsDir.eachFileRecurse { file ->
             if (file.isFile()) {
                 String relativePath = file.path.replace(rootDir.path, "").replace('\\', '/')
                 String cleanPath = relativePath.replaceAll("/\\d+\\.\\dx", "") // 去掉 2.0x, 3.0x 等前缀
