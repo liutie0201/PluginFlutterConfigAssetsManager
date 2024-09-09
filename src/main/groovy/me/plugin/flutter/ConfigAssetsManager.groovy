@@ -74,7 +74,6 @@ class ConfigAssetsManager {
         List<String> newAssetPaths = []
         assetsDir.eachFileRecurse { file ->
             if (file.isFile()) {
-                println(assetsDir.name)
                 // 获取文件的父路径，并将它转换成相对路径
                 String relativePath = file.parent.replace(currentDirPath.path, "").replace('\\', '/')
                 relativePath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath

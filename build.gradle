@@ -23,7 +23,7 @@ repositories {
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
-    api 'org.yaml:snakeyaml:2.0'
+    api 'org.yaml:snakeyaml:2.3'
 }
 
 publishing {
