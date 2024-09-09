@@ -1,9 +1,8 @@
 package me.plugin.flutter
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator
 import org.gradle.api.Project
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
 
 class ConfigAssetsManager {
 
@@ -34,7 +33,7 @@ class ConfigAssetsManager {
 
     void processAssetDirectory(File dir, Writer writer, File rootDir) {
         // 使用 Map 来存储不带分辨率前缀的路径，避免重复加载
-        def assetMap = [:]
+        def assetMap = new LinkedHashMap<String, String>()
         dir.eachFileRecurse { file ->
             if (file.isFile()) {
                 String relativePath = file.path.replace(rootDir.path, "").replace('\\', '/')
@@ -45,7 +44,7 @@ class ConfigAssetsManager {
                     assetMap[cleanPath] = relativePath
                     String fileType = getFileType(file.name)
                     if (fileType != null) {
-                        writer << "  static const String ${fileType}_${file.name.split('\\.')[0]} = '${cleanPath}';\n"
+                        writer << "  static const String ${fileType}_${file.name.split("\\.").first()} = '$cleanPath';\n"
                     }
                 }
             }
@@ -68,23 +67,8 @@ class ConfigAssetsManager {
             return
         }
 
-        // 创建自定义的 YAMLFactory，禁用强制加引号
-        YAMLFactory factory = new YAMLFactory()
-        factory.configure(YAMLGenerator.Feature.MINIMIZE_QUOTES, true)  // 禁用不必要的引号
-        factory.configure(YAMLGenerator.Feature.WRITE_DOC_START_MARKER, false) // 禁用文档开头的 "---"
-        ObjectMapper yamlMapper = new ObjectMapper(factory)
-
-        // 使用 Jackson YAML 读取 pubspec.yaml 内容
-        Map<String, Object> yamlContent = yamlMapper.readValue(pubspecFile, Map)
-
-        // 遍历 key-value 对，根据键名调整引号
-        yamlContent.each { key, value ->
-            if (key == "description") {
-                yamlContent[key] = value.toString()
-            } else if (key == "publish_to") {
-                yamlContent[key] = value.toString()
-            }
-        }
+        Yaml yaml = new Yaml()
+        Map<String, Object> yamlContent = yaml.load(pubspecFile.text)
 
         // 动态查找 assets/image, assets/img, assets/images 中的路径
         List<String> newAssetPaths = []
@@ -104,13 +88,32 @@ class ConfigAssetsManager {
         }
 
         // 确保只更新 flutter 节点下的 assets 部分，其他内容不动
-        def flutterSection = yamlContent.getOrDefault("flutter", [:])
-        flutterSection["assets"] = newAssetPaths
-        yamlContent["flutter"] = flutterSection
+        if (yamlContent.containsKey("flutter")) {
+            Map<String, Object> flutterSection = yamlContent["flutter"] as Map<String, Object>
+            flutterSection["assets"] = newAssetPaths
+        } else {
+            yamlContent["flutter"] = ["assets": newAssetPaths]
+        }
 
-        // 使用 Jackson YAML 写回 pubspec.yaml
+        // 将 flutter.assets 内容合并回原始的 pubspec.yaml 内容
+        String originalContent = pubspecFile.text
+        Map<String, Object> originalYaml = yaml.load(originalContent)
+
+        // 只覆盖 flutter.assets 部分，不动其他字段
+        if (originalYaml.containsKey("flutter")) {
+            originalYaml["flutter"].put("assets", yamlContent["flutter"]["assets"])
+        } else {
+            originalYaml["flutter"] = ["assets": newAssetPaths]
+        }
+
+        // 使用 SnakeYAML 输出 YAML
+        DumperOptions options = new DumperOptions()
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK)
+        Yaml updatedYaml = new Yaml(options)
+
+        // 写回 pubspec.yaml
         pubspecFile.withWriter("UTF-8") { writer ->
-            yamlMapper.writeValue(writer, yamlContent)
+            updatedYaml.dump(originalYaml, writer)
         }
 
         println("已覆盖更新 pubspec.yaml 文件中的 flutter: assets 部分")
