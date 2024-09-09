@@ -74,12 +74,13 @@ class ConfigAssetsManager {
         List<String> newAssetPaths = []
         assetsDir.eachFileRecurse { file ->
             if (file.isFile()) {
+                println(assetsDir.name)
                 // 获取文件的父路径，并将它转换成相对路径
                 String relativePath = file.parent.replace(currentDirPath.path, "").replace('\\', '/')
                 relativePath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath
 
                 // 只添加以 assets/image、assets/img 和 assets/images 开头的路径
-                if (relativePath.startsWith("assets/images") || relativePath.startsWith("assets/image") || relativePath.startsWith("assets/img")) {
+                if (relativePath.startsWith("${assetsDir.name}/images") || relativePath.startsWith("${assetsDir.name}/image") || relativePath.startsWith("${assetsDir.name}/img")) {
                     if (!newAssetPaths.contains(relativePath + "/")) {
                         newAssetPaths.add(relativePath + "/")
                     }
