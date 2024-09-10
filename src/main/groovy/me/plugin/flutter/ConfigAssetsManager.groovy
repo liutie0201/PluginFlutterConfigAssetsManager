@@ -16,38 +16,86 @@ class ConfigAssetsManager {
         String loadAssetsName = properties.getProperty("loadAssetsName")?.trim()
         File assetsDir = new File(currentDirPath, loadAssetsName)
         if (assetsDir.exists() && assetsDir.isDirectory()) {
-            appImageConfigFile.withWriter("UTF-8") { writer ->
-                writer << "// 自动生成的资源配置文件\n"
-                writer << "class AppImageConfig {\n"
+            File imagesDir = new File(assetsDir, "images")
+            File imageDir = new File(assetsDir, "image")
+            File imgDir = new File(assetsDir, "img")
 
-                processAssetDirectory(assetsDir, writer, currentDirPath)
+            if (imagesDir.exists() && imagesDir.isDirectory() || imageDir.exists() && imageDir.isDirectory() || imgDir.exists() && imgDir.isDirectory()) {
+                appImageConfigFile.withWriter("UTF-8") { writer ->
+                    writer << "// 自动生成的资源配置文件\n"
+                    writer << "class AppImageConfig {\n"
 
-                writer << "}\n"
-            }
-            // 更新 pubspec.yaml 文件
+                    // 处理存在的文件夹（images/image/img）
+                    if (imagesDir.exists()) {
+                        processAssetDirectory(imagesDir, writer, currentDirPath)
+                    } else if (imageDir.exists()) {
+                        processAssetDirectory(imageDir, writer, currentDirPath)
+                    } else if (imgDir.exists()) {
+                        processAssetDirectory(imgDir, writer, currentDirPath)
+                    } else {
+                        println("---------其他文件夹---------")
+                    }
+
+                    writer << "}\n"
+                }
+                // 更新 pubspec.yaml 文件
 //            updatePubspecYaml(currentDirPath, assetsDir)
+            }
         } else {
             println("指定的 assets 目录不存在或不是有效的目录: ${assetsDir.absolutePath}")
         }
     }
 
-    void processAssetDirectory(File assetsDir, Writer writer, File rootDir) {
-        // 使用 Map 来存储不带分辨率前缀的路径，避免重复加载
-        def assetMap = new LinkedHashMap<String, String>()
-        assetsDir.eachFileRecurse { file ->
-            if (file.isFile()) {
-                String relativePath = file.path.replace(rootDir.path, "").replace('\\', '/')
-                String cleanPath = relativePath.replaceAll("/\\d+\\.\\dx", "") // 去掉 2.0x, 3.0x 等前缀
-                cleanPath = cleanPath.substring(1, cleanPath.length())
-                // 如果当前文件的cleanPath已经在Map中，说明已经加载过，跳过此文件
-                if (!assetMap.containsKey(cleanPath)) {
-                    assetMap[cleanPath] = relativePath
-                    String fileType = getFileType(file.name)
-                    if (fileType != null) {
-                        writer << "  static const String ${fileType}_${file.name.split("\\.").first()} = '$cleanPath';\n"
+    void processAssetDirectory(File imagesDir, Writer writer, File rootDir) {
+        println("-----------${imagesDir.path}----------")
+
+        // 定义分辨率前缀的文件夹
+        File dir4x = new File(imagesDir, "4.0x")
+        File dir3x = new File(imagesDir, "3.0x")
+        File dir2x = new File(imagesDir, "2.0x")
+
+        def imageExtensions = [".png", ".jpg", ".jpeg", ".ico", ".webp", ".heif", ".svg"]
+
+        // 存储最终的图片路径，去除重复项
+        def finalImagePaths = new LinkedHashMap<String, String>()
+
+        // 1. 处理 images 目录下的文件（不带分辨率前缀的文件）
+        imagesDir.eachFile { file ->
+            if (file.isFile() && imageExtensions.any { file.name.toLowerCase().endsWith(it) }) {
+                finalImagePaths[file.name] = "assets_test/images/${file.name}"
+            }
+        }
+
+        // 2. 处理分辨率文件夹中的文件，取最大分辨率
+        def resolutionDirs = [dir4x, dir3x, dir2x].findAll { it.exists() && it.isDirectory() }
+
+        // 按照分辨率顺序处理（优先 4.0x，然后是 3.0x，最后是 2.0x）
+        resolutionDirs.each { dir ->
+            dir.eachFile { file ->
+                if (file.isFile() && imageExtensions.any { file.name.toLowerCase().endsWith(it) }) {
+                    // 如果主目录没有同名图片，记录分辨率文件夹中的图片
+                    if (!finalImagePaths.containsKey(file.name)) {
+                        finalImagePaths[file.name] = "assets_test/images/${dir.name}/${file.name}"
                     }
                 }
             }
+        }
+
+        // 3. 处理其他子目录（如 home 和 mine）中的文件
+        imagesDir.eachFile { file ->
+            if (file.isDirectory() && !resolutionDirs.contains(file)) {  // 跳过分辨率文件夹
+                file.eachFile { subFile ->
+                    if (subFile.isFile() && imageExtensions.any { subFile.name.toLowerCase().endsWith(it) }) {
+                        finalImagePaths[subFile.name] = "assets_test/images/${file.name}/${subFile.name}"
+                    }
+                }
+            }
+        }
+
+        // 输出生成的路径
+        finalImagePaths.each { name, path ->
+            writer << "  static const String image_${name.split("\\.").first()} = '$path';\n"
+            println(path)  // 打印输出生成的路径以便调试
         }
     }
 
@@ -112,8 +160,7 @@ class ConfigAssetsManager {
         Yaml updatedYaml = new Yaml(options)
 
         // 写回 pubspec.yaml
-        pubspecFile.withWriter("UTF-8") { writer ->
-            updatedYaml.dump(originalYaml, writer)
+        pubspecFile.withWriter("UTF-8") { writer -> updatedYaml.dump(originalYaml, writer)
         }
 
         println("已覆盖更新 pubspec.yaml 文件中的 flutter: assets 部分")
