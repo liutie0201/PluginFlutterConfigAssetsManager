@@ -13,7 +13,7 @@ class ConfigAssetsManager {
     }
 
     void writeAppImageConfig(File currentDirPath, File appImageConfigFile, Properties properties) {
-        String loadAssetsName = properties.getProperty("loadAssetsName")?.trim()
+        String loadAssetsName = properties.getProperty("loadAssetsName")?.trim() ?: "assets"
         File assetsDir = new File(currentDirPath, loadAssetsName)
         if (assetsDir.exists() && assetsDir.isDirectory()) {
             File imagesDir = new File(assetsDir, "images")
@@ -27,11 +27,11 @@ class ConfigAssetsManager {
 
                     // 处理存在的文件夹（images/image/img）
                     if (imagesDir.exists()) {
-                        processAssetDirectory(imagesDir, writer, currentDirPath)
+                        processAssetDirectory(loadAssetsName, imagesDir, writer, currentDirPath)
                     } else if (imageDir.exists()) {
-                        processAssetDirectory(imageDir, writer, currentDirPath)
+                        processAssetDirectory(loadAssetsName, imageDir, writer, currentDirPath)
                     } else if (imgDir.exists()) {
-                        processAssetDirectory(imgDir, writer, currentDirPath)
+                        processAssetDirectory(loadAssetsName, imgDir, writer, currentDirPath)
                     } else {
                         println("---------其他文件夹---------")
                     }
@@ -46,8 +46,8 @@ class ConfigAssetsManager {
         }
     }
 
-    void processAssetDirectory(File imagesDir, Writer writer, File rootDir) {
-        println("-----------${imagesDir.path}----------")
+    void processAssetDirectory(String loadAssetsName, File imagesDir, Writer writer, File rootDir) {
+        String startPath = "${loadAssetsName}/${imagesDir.name}"
 
         // 定义分辨率前缀的文件夹
         File dir4x = new File(imagesDir, "4.0x")
@@ -62,7 +62,7 @@ class ConfigAssetsManager {
         // 1. 处理 images 目录下的文件（不带分辨率前缀的文件）
         imagesDir.eachFile { file ->
             if (file.isFile() && imageExtensions.any { file.name.toLowerCase().endsWith(it) }) {
-                finalImagePaths[file.name] = "assets_test/images/${file.name}"
+                finalImagePaths[file.name] = "${startPath}/${file.name}"
             }
         }
 
@@ -75,7 +75,7 @@ class ConfigAssetsManager {
                 if (file.isFile() && imageExtensions.any { file.name.toLowerCase().endsWith(it) }) {
                     // 如果主目录没有同名图片，记录分辨率文件夹中的图片
                     if (!finalImagePaths.containsKey(file.name)) {
-                        finalImagePaths[file.name] = "assets_test/images/${dir.name}/${file.name}"
+                        finalImagePaths[file.name] = "${startPath}/${dir.name}/${file.name}"
                     }
                 }
             }
@@ -86,16 +86,14 @@ class ConfigAssetsManager {
             if (file.isDirectory() && !resolutionDirs.contains(file)) {  // 跳过分辨率文件夹
                 file.eachFile { subFile ->
                     if (subFile.isFile() && imageExtensions.any { subFile.name.toLowerCase().endsWith(it) }) {
-                        finalImagePaths[subFile.name] = "assets_test/images/${file.name}/${subFile.name}"
+                        finalImagePaths[subFile.name] = "${startPath}/${file.name}/${subFile.name}"
                     }
                 }
             }
         }
-
         // 输出生成的路径
         finalImagePaths.each { name, path ->
-            writer << "  static const String image_${name.split("\\.").first()} = '$path';\n"
-            println(path)  // 打印输出生成的路径以便调试
+            writer << "  static const String ${getFileType(name)}_${name.split("\\.").first()} = '$path';\n"
         }
     }
 
